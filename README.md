@@ -109,7 +109,7 @@ avec $R(n,j)$ le facteur d'actualisation et $\pi(n,j) = \dfrac{R(n,j) - b(n,j)}{
 
 ## 📚 Références
 
-- Hoek, J. van der, & Elliott, R. J. (2006). *Binomial Models in Finance*. Springer Finance. New York: Springer-Verlag. ISBN: 978-0-387-25898-0.
+- Hoek, J. van der, & Elliott, R. J. (2006). *Binomial Models in Finance*. Springer Finance
 
 
 ## 👨‍💻 Auteur
