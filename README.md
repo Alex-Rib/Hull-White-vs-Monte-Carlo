@@ -114,6 +114,6 @@ avec $R(n,j)$ le facteur d'actualisation et $\pi(n,j) = \dfrac{R(n,j) - b(n,j)}{
 
 ## 👨‍💻 Auteur
 
-Alexandre R. - Master ISIFAR, Université Paris Cité
+Alexandre R. - Master mathématiques appliquées -  Université Paris Cité
 
 
