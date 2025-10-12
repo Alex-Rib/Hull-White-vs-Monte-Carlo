@@ -34,17 +34,17 @@ L'étude utilise les données réelles d'**Apple (AAPL)** pour calibrer les para
 #### 1. Monte Carlo
 
 - **Hypothèse** : mouvement brownien géométrique (Black-Scholes) : 
-
+```math
 $$dS_t = r\,S_t\,dt + \sigma\,S_t\,dW_t$$
-
+```
 - **Lemme d'Itô** appliqué au log-prix : 
 ```math
 $$d\!\bigl(\log S_t\bigr) = \Bigl(r - \tfrac{1}{2}\sigma^{2}\Bigr)\,dt + \sigma\,dW_t$$
 ```
 - **Méthode d'Euler** pour la simulation : 
-
+```math
 $$\log S_{t_{k+1}} = \log S_{t_k} + \Bigl(r - \tfrac{1}{2}\sigma^{2}\Bigr)\,\Delta t + \sigma\sqrt{\Delta t}\,Z_k, \qquad Z_k \sim \mathcal{N}(0,1)$$
-
+```
 #### 2. Hull & White
 
 - **Arbre binomial recombinant** avec grille de moyennes :
@@ -66,9 +66,9 @@ A_3(n\!+\!1,j) &= \tfrac{1}{3}\bigl(A_1(n\!+\!1,j)+2\,A_4(n\!+\!1,j)\bigr)
 avec $j_h$ = hausse et $j_b$ = baisse.
 
 - **Calcul des payoffs** : 
-
+```math
 $$C_i(N,j) = \max\bigl(A_i(N,j)-K,\ 0\bigr), \qquad i=1,\ldots,4$$
-
+```
 - **Backward induction et interpolation linéaire** :
 
 Calcul des moyennes conditionnelles :
