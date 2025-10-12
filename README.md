@@ -105,72 +105,15 @@ $$C_i(n,j) = \tfrac{1}{R(n,j)}\bigl(\pi(n,j)C_i(n,j)^{\uparrow} + (1-\pi(n,j))C_
 
 avec $R(n,j)$ le facteur d'actualisation et $\pi(n,j) = \dfrac{R(n,j) - b(n,j)}{h(n,j) - b(n,j)}$ la probabilité risque-neutre.
 
-## 📈 Résultats
 
-Le programme génère :
-
-1. **Tableau comparatif** : Prix et temps d'exécution pour les deux méthodes
-2. **Graphiques de convergence** : Évolution du prix Hull & White selon le nombre de moyennes (M)
-3. **Visualisations** :
-   - Évolution du prix AAPL sur 90 jours
-   - 100 trajectoires Monte Carlo
-   - Convergence vers le prix Monte Carlo
-   - Analyse du temps d'exécution
-
-## 🚀 Installation
-
-### Prérequis
-- Python 3.8+
-- pip
-
-### Dépendances
-
-```bash
-pip install -r requirements.txt
-```
-
-Les packages nécessaires :
-- `numpy` : calculs numériques
-- `pandas` : manipulation de données
-- `matplotlib` : visualisations
-- `yfinance` : récupération des données financières
-
-## 💻 Utilisation
-
-```bash
-python asian_options_pricing.py
-```
-
-Le script va :
-1. Télécharger les données AAPL
-2. Calculer les paramètres du modèle
-3. Exécuter les simulations Monte Carlo
-4. Calculer les prix via Hull & White
-5. Afficher les résultats et graphiques
 
 ## 📚 Références
 
-- Hull, J. C., & White, A. (1993). *Efficient Procedures for Valuing European and American Path-Dependent Options*. Journal of Derivatives, 1(1), 21-31.
-
 - Hoek, J. van der, & Elliott, R. J. (2006). *Binomial Models in Finance*. Springer Finance. New York: Springer-Verlag. ISBN: 978-0-387-25898-0.
 
-## 🔍 Analyse de convergence
 
-Le programme teste la convergence de Hull & White avec M = [4, 8, 16, 32, 64, 128] moyennes par nœud.
-
-**Observations** :
-- Plus M augmente, plus le prix H&W converge vers Monte Carlo
-- Le temps de calcul augmente de manière exponentielle avec M
-- Un bon compromis est généralement M = 16 ou 32
 ## 👨‍💻 Auteur
 
 Alexandre R. - Master ISIFAR, Université Paris Cité
 
-## 📄 Licence
-
-Ce projet est à usage académique et pédagogique.
-
-## ⚠️ Avertissement
-
-Ce code est destiné à des fins éducatives uniquement. Ne pas utiliser pour des décisions d'investissement réelles sans validation appropriée.
 
