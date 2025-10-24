@@ -21,12 +21,12 @@ import matplotlib.pyplot as plt
 
 # Import des données AAPL des 140 derniers jours depuis Yahoo Finance
 end_date = datetime.now()  # Date actuelle
-start_date = end_date - timedelta(days=140)  # Date il y a 140 jours
-data = yf.download('AAPL', start=start_date, end=end_date)  # Télécharger les données
+start_date = end_date - timedelta(days=140)  
+data = yf.download('AAPL', start=start_date, end=end_date)  
 data = data.tail(90).copy()  # On garde les 90 derniers jours uniquement
-data.reset_index(inplace=True)  # Réinitialiser l'index pour avoir la date comme colonne
-data['Date'] = pd.to_datetime(data['Date'])  # S'assurer que la colonne Date est au format datetime
-data['Day'] = range(1, len(data) + 1)  # Ajouter une colonne 'Day' pour le numéro du jour
+data.reset_index(inplace=True)  # Réinitialise l'index pour avoir la date comme colonne
+data['Date'] = pd.to_datetime(data['Date'])  # S'assure que la colonne Date est au format datetime
+data['Day'] = range(1, len(data) + 1)  # Ajoute une colonne 'Day' pour le numéro du jour
 
 
 # ============================================================================
@@ -34,7 +34,7 @@ data['Day'] = range(1, len(data) + 1)  # Ajouter une colonne 'Day' pour le numé
 # ============================================================================
 
 
-close_prices = data['Close'].values.flatten()  # Convertir en array 1D
+close_prices = data['Close'].values.flatten()  # Convertion en array 1D
 S0 = close_prices[-1]  # Dernier prix de clôture
 K_ATM = S0  # Strike ATM
 K_5 = S0 * 1.05  # Strike OTM en espérant une hausse
@@ -82,10 +82,6 @@ def price_asian_call_monte_carlo_all_in_one(S0, K, r, sigma, T, N, M):
 # HULL & WHITE - PRICING D'UNE OPTION ASIATIQUE CALL
 # avec M moyennes par nœud
 def price_asian_call_HW_all_in_one(S0, K, r, sigma, T, N, M):
-    # Fonction d'interpolation linéaire "safe"
-    # avg_grid : grille des moyennes A_k
-    # target_avg : moyenne cible M
-    # child_vals : valeurs des options C_k correspondantes
     def interpolate_safe(avg_grid, target_avg, child_vals):
         # On enlève les NA
         valid = ~np.isnan(avg_grid) & ~np.isnan(child_vals) # indices valides
