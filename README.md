@@ -1,5 +1,9 @@
 # Pricing d'Options Asiatiques : Monte Carlo vs Hull & White
 
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![Finance](https://img.shields.io/badge/Finance-Derivatives-green)
+![Status](https://img.shields.io/badge/Status-Educational-orange)
+
 ## 📊 Description
 
 Ce projet compare deux méthodes de pricing pour les calls asiatiques :
