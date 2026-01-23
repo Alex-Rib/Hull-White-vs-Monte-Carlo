@@ -1,8 +1,4 @@
-"""
-================================================================================
-PRICING D'OPTIONS ASIATIQUES : MONTE CARLO vs HULL & WHITE
-================================================================================
-"""
+
 
 # ============================================================================
 # 1 IMPORTS
@@ -13,40 +9,6 @@ import numpy as np
 from datetime import datetime, timedelta
 import time
 import matplotlib.pyplot as plt
-
-
-# ============================================================================
-# 2 IMPORTATION ET PRÉPARATION DES DONNÉES AAPL
-# ============================================================================
-
-# Import des données AAPL des 140 derniers jours depuis Yahoo Finance
-end_date = datetime.now()  # Date actuelle
-start_date = end_date - timedelta(days=140)  
-data = yf.download('AAPL', start=start_date, end=end_date)  
-data = data.tail(90).copy()  # On garde les 90 derniers jours uniquement
-data.reset_index(inplace=True)  # Réinitialise l'index pour avoir la date comme colonne
-data['Date'] = pd.to_datetime(data['Date'])  # S'assure que la colonne Date est au format datetime
-data['Day'] = range(1, len(data) + 1)  # Ajoute une colonne 'Day' pour le numéro du jour
-
-
-# ============================================================================
-# 3 CALCUL DES PARAMÈTRES DU MODÈLE
-# ============================================================================
-
-
-close_prices = data['Close'].values.flatten()  # Convertion en array 1D
-S0 = close_prices[-1]  # Dernier prix de clôture
-K_ATM = S0  # Strike ATM
-K_5 = S0 * 1.05  # Strike OTM en espérant une hausse
-N = len(data)  # Nombre de pas
-T = N / 252  # Maturité (une année boursière = 252 jours [marché US])
-
-# Volatilité annualisée
-log_returns = np.diff(np.log(close_prices))
-sigma = np.std(log_returns) * np.sqrt(252)
-
-# Taux d'intérêt sans risque
-r = 0.04387
 
 
 # ============================================================================
@@ -216,156 +178,194 @@ def price_asian_call_HW_all_in_one(S0, K, r, sigma, T, N, M):
     }
 
 
-# ============================================================================
-# 5 PRICING DES OPTIONS ET DATAFRAMES 
-# ============================================================================
+def main():
+    # ============================================================================
+    # 2 IMPORTATION ET PRÉPARATION DES DONNÉES AAPL
+    # ============================================================================
 
-# Prix via Monte Carlo - Strike ATM (1000000 simulations)
-resultMC_ATM = price_asian_call_monte_carlo_all_in_one(S0, K_ATM, r, sigma, T, N, M=1000000)
-# Création du DataFrame
-MC_ATM_Data_frame = pd.DataFrame([{
-    'Type': 'Call Asiatique',
-    'Price': resultMC_ATM['price'],
-    'Time': resultMC_ATM['time']
-}])
-
-# Prix via Monte Carlo strike otm +5% (1000000 simulations)
-resultMC_5 = price_asian_call_monte_carlo_all_in_one(S0, K_5, r, sigma, T, N, M=1000000)
-# Création du DataFrame
-MC_5_Data_frame = pd.DataFrame([{
-    'Type': 'Call Asiatique',
-    'Price': resultMC_5['price'],
-    'Time': resultMC_5['time']
-}])
-
-# Prix via Hull & White strike atm (M=4)
-resultHW_ATM = price_asian_call_HW_all_in_one(S0, K_ATM, r, sigma, T, N, M=4)
-# Création du DataFrame
-HW_ATM_Data_frame = pd.DataFrame([{
-    'Type': 'Call Asiatique',
-    'Price': resultHW_ATM['price'],
-    'Time': resultHW_ATM['time']
-}])
-# Prix via Hull & White strike otm +5% (M=4)
-resultHW_5 = price_asian_call_HW_all_in_one(S0, K_5, r, sigma, T, N, M=4)
-# Création du DataFrame
-HW_5_Data_frame = pd.DataFrame([{
-    'Type': 'Call Asiatique',
-    'Price': resultHW_5['price'],
-    'Time': resultHW_5['time']
-}]) 
-
-# Tableau comparatif des résultats
-MC_HW_combined_data_frame = pd.DataFrame({
-    'Type': ['Call Asiatique'] * 4,
-    'Method': ['Monte-Carlo', 'Monte-Carlo', 'Hull & White', 'Hull & White'],
-    'Strike': ['ATM', 'ATM + 5%', 'ATM', 'ATM + 5%'],
-    'Price': [
-        resultMC_ATM['price'],
-        resultMC_5['price'],
-        resultHW_ATM['price'],
-        resultHW_5['price']
-    ],
-    'Time': [
-        resultMC_ATM['time'],
-        resultMC_5['time'],
-        resultHW_ATM['time'],
-        resultHW_5['time']
-    ]
-})
-
-# ============================================================================
-# 6 CONVERGENCE HULL & WHITE VERS MONTE CARLO
-# ============================================================================
-
-M_conv = [4, 8, 16, 32, 64, 128]  # les différentes moyennes à tester
-
-# DataFrame pour stocker les résultats en fonction de M (l'éxécution est lente)
-Convergence_HW = pd.DataFrame([
-    {
-        'Type': 'Call asiatique',
-        'Method': 'Hull & White',
-        'Strike': 'ATM',
-        'Price': (result := price_asian_call_HW_all_in_one(S0, K_ATM, r, sigma, T, N, M=Ma))['price'],
-        'Time': result['time'],
-        'Average Number': Ma
-    }
-    for Ma in M_conv
-])
+    # Import des données AAPL des 140 derniers jours depuis Yahoo Finance
+    end_date = datetime.now()  # Date actuelle
+    start_date = end_date - timedelta(days=140)  
+    data = yf.download('AAPL', start=start_date, end=end_date)  
+    data = data.tail(90).copy()  # On garde les 90 derniers jours uniquement
+    data.reset_index(inplace=True)  # Réinitialise l'index pour avoir la date comme colonne
+    data['Date'] = pd.to_datetime(data['Date'])  # S'assure que la colonne Date est au format datetime
+    data['Day'] = range(1, len(data) + 1)  # Ajoute une colonne 'Day' pour le numéro du jour
 
 
+    # ============================================================================
+    # 3 CALCUL DES PARAMÈTRES DU MODÈLE
+    # ============================================================================
 
 
-# ============================================================================
-# 7 PLOT et  AFFICHAGE DES RESULTATS
-# ============================================================================
+    close_prices = data['Close'].values.flatten()  # Convertion en array 1D
+    S0 = close_prices[-1]  # Dernier prix de clôture
+    K_ATM = S0  # Strike ATM
+    K_5 = S0 * 1.05  # Strike OTM en espérant une hausse
+    N = len(data)  # Nombre de pas
+    T = N / 252  # Maturité (une année boursière = 252 jours [marché US])
+
+    # Volatilité annualisée
+    log_returns = np.diff(np.log(close_prices))
+    sigma = np.std(log_returns) * np.sqrt(252)
+
+    # Taux d'intérêt sans risque
+    r = 0.04387
 
 
-print("\n---- Paramètres du modèle : ----")
-print(f"S0: {S0:.2f}")
-print(f"Strike ATM: {K_ATM:.2f}")
-print(f"Strike OTM: {K_5:.2f}")
-print(f"Nombre de pas: {N}")
-print(f"Maturité en année: {T:.2f}")
-print(f"Volatilité annualisée: {sigma:.4f}")
-print(f"Taux d'intérêt sans risque: {r:.4f}")
+    # ============================================================================
+    # 5 PRICING DES OPTIONS ET DATAFRAMES 
+    # ============================================================================
 
-print("\n---- Aperçu des données ----")
-print(data.head(10))
-print("\n---- Évolution des prix de clôture d'AAPL sur les 90 derniers jours ----")
-plt.figure(figsize=(10, 6))
-plt.plot(data['Day'], data['Close'], linewidth=1.3, color='purple')
-plt.xlabel('Day')
-plt.ylabel('Price')
-plt.xlim(1, 90)
-plt.xticks(range(1, 91, 5))
-plt.grid(True, alpha=0.3)
-plt.show()
+    # Prix via Monte Carlo - Strike ATM (1000000 simulations)
+    resultMC_ATM = price_asian_call_monte_carlo_all_in_one(S0, K_ATM, r, sigma, T, N, M=1000000)
+    # Création du DataFrame
+    MC_ATM_Data_frame = pd.DataFrame([{
+        'Type': 'Call Asiatique',
+        'Price': resultMC_ATM['price'],
+        'Time': resultMC_ATM['time']
+    }])
+
+    # Prix via Monte Carlo strike otm +5% (1000000 simulations)
+    resultMC_5 = price_asian_call_monte_carlo_all_in_one(S0, K_5, r, sigma, T, N, M=1000000)
+    # Création du DataFrame
+    MC_5_Data_frame = pd.DataFrame([{
+        'Type': 'Call Asiatique',
+        'Price': resultMC_5['price'],
+        'Time': resultMC_5['time']
+    }])
+
+    # Prix via Hull & White strike atm (M=4)
+    resultHW_ATM = price_asian_call_HW_all_in_one(S0, K_ATM, r, sigma, T, N, M=4)
+    # Création du DataFrame
+    HW_ATM_Data_frame = pd.DataFrame([{
+        'Type': 'Call Asiatique',
+        'Price': resultHW_ATM['price'],
+        'Time': resultHW_ATM['time']
+    }])
+    # Prix via Hull & White strike otm +5% (M=4)
+    resultHW_5 = price_asian_call_HW_all_in_one(S0, K_5, r, sigma, T, N, M=4)
+    # Création du DataFrame
+    HW_5_Data_frame = pd.DataFrame([{
+        'Type': 'Call Asiatique',
+        'Price': resultHW_5['price'],
+        'Time': resultHW_5['time']
+    }]) 
+
+    # Tableau comparatif des résultats
+    MC_HW_combined_data_frame = pd.DataFrame({
+        'Type': ['Call Asiatique'] * 4,
+        'Method': ['Monte-Carlo', 'Monte-Carlo', 'Hull & White', 'Hull & White'],
+        'Strike': ['ATM', 'ATM + 5%', 'ATM', 'ATM + 5%'],
+        'Price': [
+            resultMC_ATM['price'],
+            resultMC_5['price'],
+            resultHW_ATM['price'],
+            resultHW_5['price']
+        ],
+        'Time': [
+            resultMC_ATM['time'],
+            resultMC_5['time'],
+            resultHW_ATM['time'],
+            resultHW_5['time']
+        ]
+    })
+
+    # ============================================================================
+    # 6 CONVERGENCE HULL & WHITE VERS MONTE CARLO
+    # ============================================================================
+
+    M_conv = [4, 8, 16, 32, 64, 128]  # les différentes moyennes à tester
+
+    # DataFrame pour stocker les résultats en fonction de M (l'éxécution est lente)
+    Convergence_HW = pd.DataFrame([
+        {
+            'Type': 'Call asiatique',
+            'Method': 'Hull & White',
+            'Strike': 'ATM',
+            'Price': (result := price_asian_call_HW_all_in_one(S0, K_ATM, r, sigma, T, N, M=Ma))['price'],
+            'Time': result['time'],
+            'Average Number': Ma
+        }
+        for Ma in M_conv
+    ])
 
 
-print("\n---- Monte Carlo paths ----")
-M = 100 # nombre de chemins
-paths = simulate_monte_carlo_paths(S0, r, sigma, T, N, M)
-plt.figure(figsize=(12, 6))
-# Trace chaque chemin
-for i in range(M):
-    plt.plot(range(N+1), paths[i, :], alpha=0.9, linewidth=0.5)
-# Tracer le prix initial
-plt.axhline(y=S0, color='black', linestyle='--', linewidth=1, label=f'S0 = {S0:.2f}')
-plt.title(f'{M} trajectoires')
-plt.xlabel('time steps')
-plt.ylabel('Prices')
-plt.legend()
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
 
-print("\n---- Tableau comparatif entre Monte Carlo (1000000 simulations) et Hull & White (4 moyennes) ----")
-print(MC_HW_combined_data_frame)
+    # ============================================================================
+    # 7 PLOT et  AFFICHAGE DES RESULTATS
+    # ============================================================================
 
 
-print("\n--- Convergence d'Hull & White vers Monte Carlo ---")
-plt.figure(figsize=(10, 6))
-plt.plot(Convergence_HW['Average Number'], Convergence_HW['Price'], linewidth=1.1, color='blue', marker='o')
-plt.axhline(y=resultMC_ATM['price'], color='black', linewidth=0.7, linestyle='--', label='Monte Carlo price')
-plt.xlabel('Average Number', fontsize=12)
-plt.ylabel('Price', fontsize=12)
-plt.xlim(4, 128)
-plt.xticks([4, 8, 16, 32, 64, 128])
-plt.grid(True, alpha=0.3)
-plt.legend(fontsize=10)
-plt.tight_layout()
-plt.show()
+    print("\n---- Paramètres du modèle : ----")
+    print(f"S0: {S0:.2f}")
+    print(f"Strike ATM: {K_ATM:.2f}")
+    print(f"Strike OTM: {K_5:.2f}")
+    print(f"Nombre de pas: {N}")
+    print(f"Maturité en année: {T:.2f}")
+    print(f"Volatilité annualisée: {sigma:.4f}")
+    print(f"Taux d'intérêt sans risque: {r:.4f}")
+
+    print("\n---- Aperçu des données ----")
+    print(data.head(10))
+    print("\n---- Évolution des prix de clôture d'AAPL sur les 90 derniers jours ----")
+    plt.figure(figsize=(10, 6))
+    plt.plot(data['Day'], data['Close'], linewidth=1.3, color='purple')
+    plt.xlabel('Day')
+    plt.ylabel('Price')
+    plt.xlim(1, 90)
+    plt.xticks(range(1, 91, 5))
+    plt.grid(True, alpha=0.3)
+    plt.show()
 
 
-print("\n---- Temps d'exécution d'Hull & White en fonction du nombre de moyennes ----")
-plt.figure(figsize=(10, 6))
-plt.plot(Convergence_HW['Time'], Convergence_HW['Average Number'], linewidth=1.1, color='orange', marker='o')
-plt.xlabel('Time (seconds)', fontsize=12)
-plt.ylabel('Average Number', fontsize=12)
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
+    print("\n---- Monte Carlo paths ----")
+    M = 100 # nombre de chemins
+    paths = simulate_monte_carlo_paths(S0, r, sigma, T, N, M)
+    plt.figure(figsize=(12, 6))
+    # Trace chaque chemin
+    for i in range(M):
+        plt.plot(range(N+1), paths[i, :], alpha=0.9, linewidth=0.5)
+    # Tracer le prix initial
+    plt.axhline(y=S0, color='black', linestyle='--', linewidth=1, label=f'S0 = {S0:.2f}')
+    plt.title(f'{M} trajectoires')
+    plt.xlabel('time steps')
+    plt.ylabel('Prices')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
-print("\n---- Convergence d'Hull & White vers Monte Carlo en détail ----")
-print(Convergence_HW)
+    print("\n---- Tableau comparatif entre Monte Carlo (1000000 simulations) et Hull & White (4 moyennes) ----")
+    print(MC_HW_combined_data_frame)
+
+
+    print("\n--- Convergence d'Hull & White vers Monte Carlo ---")
+    plt.figure(figsize=(10, 6))
+    plt.plot(Convergence_HW['Average Number'], Convergence_HW['Price'], linewidth=1.1, color='blue', marker='o')
+    plt.axhline(y=resultMC_ATM['price'], color='black', linewidth=0.7, linestyle='--', label='Monte Carlo price')
+    plt.xlabel('Average Number', fontsize=12)
+    plt.ylabel('Price', fontsize=12)
+    plt.xlim(4, 128)
+    plt.xticks([4, 8, 16, 32, 64, 128])
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10)
+    plt.tight_layout()
+    plt.show()
+
+
+    print("\n---- Temps d'exécution d'Hull & White en fonction du nombre de moyennes ----")
+    plt.figure(figsize=(10, 6))
+    plt.plot(Convergence_HW['Time'], Convergence_HW['Average Number'], linewidth=1.1, color='orange', marker='o')
+    plt.xlabel('Time (seconds)', fontsize=12)
+    plt.ylabel('Average Number', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+    print("\n---- Convergence d'Hull & White vers Monte Carlo en détail ----")
+    print(Convergence_HW)
+
+
+if __name__ == "__main__":
+    main()
