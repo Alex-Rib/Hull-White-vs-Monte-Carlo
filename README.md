@@ -1,123 +1,117 @@
-# Pricing d'Options Asiatiques : Monte Carlo vs Hull & White
+# Asian Option Pricing: Monte Carlo vs Hull-White
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![Finance](https://img.shields.io/badge/Finance-Derivatives-green)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Finance](https://img.shields.io/badge/Finance-Path--Dependent%20Options-green)
+![Tests](https://img.shields.io/badge/Tests-pytest-purple)
+![Lint](https://img.shields.io/badge/Lint-ruff-orange)
 ![Status](https://img.shields.io/badge/Status-Educational-orange)
 
 ## 📊 Description
 
-Ce projet compare deux méthodes de pricing pour les calls asiatiques :
-- **Monte Carlo** 
-- **Hull & White** 
+Two pricing methods for fixed-strike **arithmetic-average Asian calls**, compared on real Apple (AAPL) data:
 
-L'étude utilise les données réelles d'**Apple (AAPL)** pour calibrer les paramètres du modèle.
+- **Monte Carlo** simulation of geometric Brownian motion paths
+- **Hull-White** recombining binomial lattice with a grid of running averages
 
-## 🎯 Objectifs
+The study prices the option at two strikes (ATM and 5% OTM) and analyses how the Hull-White lattice converges to the Monte Carlo benchmark as its averaging grid is refined, illustrating the accuracy-versus-runtime trade-off.
 
-- Implémenter et comparer deux approches de pricing d'options asiatiques
-- Analyser la convergence d'Hull & White vers Monte Carlo
-- Évaluer le trade-off entre précision et temps de calcul
+## 🎯 Pipeline
 
+| Stage | Module | Role |
+|-------|--------|------|
+| Market data | `market_data.py` | Load the AAPL snapshot; derive spot, annualised vol and maturity |
+| Monte Carlo | `monte_carlo.py` | GBM path simulation and discounted-payoff pricing |
+| Hull-White | `hull_white.py` | Lattice with forward/backward induction on the averages grid |
+| Orchestration | `run.py` | Comparison table, convergence study and plot |
 
-## 🔬 Méthodologie
+## 🔬 Data
 
-### Données
-- **Actif sous-jacent** : Apple (AAPL)
-- **Période** : 90 derniers jours de bourse
-- **Source** : Yahoo Finance (via `yfinance`)
+The underlying is **AAPL** over its 90 most recent trading days, taken from a committed CSV snapshot for reproducibility. The spot is the latest close, the volatility is annualised from log returns, the maturity is 90/252 years, and the risk-free rate is 4.387%.
 
-### Paramètres du modèle
-- **S₀** : Prix de clôture le plus récent
-- **K** : Strike ATM et OTM (+5%)
-- **T** : Maturité (90 jours / 252 jours ouvrés)
-- **σ** : Volatilité annualisée (calculée sur les rendements logarithmiques)
-- **r** : Taux sans risque (4.387%)
+## 📐 Methods
 
-### Méthodes implémentées
+### 1. Monte Carlo
 
-#### 1. Monte Carlo
+Under the risk-neutral measure the spot follows a geometric Brownian motion:
 
-- **Hypothèse** : mouvement brownien géométrique (Black-Scholes) : 
-```math
 $$dS_t = r\,S_t\,dt + \sigma\,S_t\,dW_t$$
+
+Applying Ito's lemma to the log-price and discretising with an exact log-Euler step:
+
+$$\log S_{t_{k+1}} = \log S_{t_k} + \left(r - \tfrac{1}{2}\sigma^2\right)\Delta t + \sigma\sqrt{\Delta t}\,Z_k, \qquad Z_k \sim \mathcal{N}(0, 1)$$
+
+The Asian call value is the discounted mean payoff on the path average, with averaging over the spot and the simulated steps:
+
+$$C = e^{-rT}\,\mathbb{E}\!\left[\max\!\left(\bar{S} - K,\ 0\right)\right], \qquad \bar{S} = \frac{1}{N+1}\sum_{k=0}^{N} S_{t_k}$$
+
+The estimator is vectorised over paths and reproducible through a seeded RNG; the standard error is reported alongside the price.
+
+### 2. Hull-White lattice
+
+On a recombining binomial tree with up factor $h = e^{\sigma\sqrt{\Delta t}}$, down factor $b = 1/h$ and risk-neutral probability $q = (R - b)/(h - b)$ where $R = e^{r\Delta t}$, each node $(n, j)$ carries a grid of representative running averages
+
+$$A_1(n, j) < A_2(n, j) < \dots < A_M(n, j)$$
+
+bounded by the minimum and maximum attainable average. With $M = 4$ the grid uses the two bounds and two interior thirds; otherwise the averages are spread uniformly.
+
+**Forward induction** propagates the averages. With $j_h$ an up move and $j_b$ a down move:
+
+$$A_i(n+1, j_\bullet) = \frac{1}{n+2}\Bigl((n+1)\,A_i(n, j) + S(n+1, j_\bullet)\Bigr)$$
+
+and for $M = 4$ the interior points are rebuilt as thirds of the refreshed bounds:
+
+$$A_2 = \tfrac{1}{3}\bigl(2 A_1 + A_4\bigr), \qquad A_3 = \tfrac{1}{3}\bigl(A_1 + 2 A_4\bigr)$$
+
+**Terminal payoff** on the averages grid:
+
+$$C_i(N, j) = \max\bigl(A_i(N, j) - K,\ 0\bigr)$$
+
+**Backward induction with linear interpolation.** Rolling back from $(n+1)$ to $(n, j)$, the post-move averages
+
+$$M(\uparrow) = \frac{(n+1)A_i(n,j) + S(n+1, j_h)}{n+2}, \qquad M(\downarrow) = \frac{(n+1)A_i(n,j) + S(n+1, j_b)}{n+2}$$
+
+generally fall between grid points of the child node, so the child option value is linearly interpolated. For the up move, if $M(\uparrow) \in [A_k, A_{k+1}]$ then
+
+$$\lambda_\uparrow = \frac{A_{k+1} - M(\uparrow)}{A_{k+1} - A_k}, \qquad C_i(n,j)^\uparrow = \lambda_\uparrow C_k + (1 - \lambda_\uparrow) C_{k+1}$$
+
+and symmetrically for the down move. The node value discounts the risk-neutral expectation:
+
+$$C_i(n, j) = \frac{1}{R}\Bigl(q\,C_i(n,j)^\uparrow + (1 - q)\,C_i(n,j)^\downarrow\Bigr)$$
+
+## 📈 Results
+
+On the committed snapshot (spot ≈ 194, vol ≈ 22.6%, T ≈ 0.36y), the Hull-White price converges towards the Monte Carlo benchmark as the number of averages grows:
+
+| Averages | Hull-White price |
+|---------:|-----------------:|
+| 4 | 15.93 |
+| 8 | 11.41 |
+| 16 | 8.95 |
+| 32 | 7.58 |
+| 64 | 6.91 |
+| 128 | 6.80 |
+
+Monte Carlo benchmark (ATM, 1M paths): **6.76**. The coarse grid (M=4) is far off because the averaging grid is too sparse to track the path-dependent state; refining it closes the gap, at a runtime that roughly doubles each time M doubles. This is the accuracy-versus-cost trade-off the project sets out to show: Monte Carlo is simpler and fast here, while the lattice needs a fine averages grid to match it.
+
+## 🚀 Usage
+
+```bash
+python run.py
 ```
-- **Lemme d'Itô** appliqué au log-prix : 
-```math
-$$d\!\bigl(\log S_t\bigr) = \Bigl(r - \tfrac{1}{2}\sigma^{2}\Bigr)\,dt + \sigma\,dW_t$$
+
+## ✅ Tests & Lint
+
+```bash
+pytest -q
+ruff check .
 ```
-- **Méthode d'Euler** pour la simulation : 
-```math
-$$\log S_{t_{k+1}} = \log S_{t_k} + \Bigl(r - \tfrac{1}{2}\sigma^{2}\Bigr)\,\Delta t + \sigma\sqrt{\Delta t}\,Z_k, \qquad Z_k \sim \mathcal{N}(0,1)$$
-```
-#### 2. Hull & White
 
-- **Arbre binomial recombinant** avec grille de moyennes :
+Tests cover Monte Carlo reproducibility, the Asian-below-vanilla inequality, monotonicity in strike, ordered Hull-White average bounds, and Hull-White convergence to the Monte Carlo price.
 
-$$A_1(n,j) < A_2(n,j) < A_3(n,j) < A_4(n,j)$$
+## 📚 Reference
 
-- **Calcul des $A_i$ par forward induction** : 
-```math
-$$\begin{aligned}
-A_i(0,0) &= S(0,0) \quad \forall i \in \{1,2,3,4\}\\[1em]
-A_1(n\!+\!1,j_h) &= \tfrac{1}{n+2}\bigl((n+1)A_1(n,j) + S(n+1,j_h)\bigr)\\[1em] 
-A_1(n\!+\!1,j_b) &= \tfrac{1}{n+2}\bigl((n+1)A_1(n,j) + S(n+1,j_b)\bigr)\\[1em]
-A_4(n\!+\!1,j_h) &= \tfrac{1}{n+2}\bigl((n+1)A_4(n,j) + S(n+1,j_h)\bigr)\\[1em]
-A_4(n\!+\!1,j_b) &= \tfrac{1}{n+2}\bigl((n+1)A_4(n,j) + S(n+1,j_b)\bigr)\\[1em]
-A_2(n\!+\!1,j) &= \tfrac{1}{3}\bigl(2\,A_1(n\!+\!1,j)+A_4(n\!+\!1,j)\bigr)\\[1em]
-A_3(n\!+\!1,j) &= \tfrac{1}{3}\bigl(A_1(n\!+\!1,j)+2\,A_4(n\!+\!1,j)\bigr)
-\end{aligned}$$
-```
-avec $j_h$ = hausse et $j_b$ = baisse.
+Van der Hoek, J. & Elliott, R. J. (2006). *Binomial Models in Finance*. Springer Finance.
 
-- **Calcul des payoffs** : 
-```math
-$$C_i(N,j) = \max\bigl(A_i(N,j)-K,\ 0\bigr), \qquad i=1,\ldots,4$$
-```
-- **Backward induction et interpolation linéaire** :
+## 👨‍💻 Author
 
-Calcul des moyennes conditionnelles :
-```math
-$$\begin{aligned}
-M(\uparrow) &= \tfrac{1}{n+2}\bigl((n+1)A_i(n,j) + S(n+1,j_h)\bigr)\\[1em]
-M(\downarrow) &= \tfrac{1}{n+2}\bigl((n+1)A_i(n,j) + S(n+1,j_b)\bigr)
-\end{aligned}$$
-```
-avec $M(\uparrow)$ = moyenne si hausse, $M(\downarrow)$ = moyenne si baisse.
-
-- **En cas de hausse** :
-
-S'il existe $k$ tel que $M(\uparrow) \in [A_k(n+1,j_h), A_{k+1}(n+1,j_h)]$, alors :
-
-$$\lambda_{\uparrow} = \frac{A_{k+1}(n+1,j_h) - M(\uparrow)}{A_{k+1}(n+1,j_h) - A_k(n+1,j_h)}$$
-
-- **En cas de baisse** :
-
-S'il existe $t$ tel que $M(\downarrow) \in [A_t(n+1,j_b), A_{t+1}(n+1,j_b)]$, alors :
-
-$$\lambda_{\downarrow} = \frac{A_{t+1}(n+1,j_b) - M(\downarrow)}{A_{t+1}(n+1,j_b) - A_t(n+1,j_b)}$$
-
-- **Valeurs interpolées** :
-```math
-$$\begin{aligned}
-C_i(n,j)^{\uparrow} &= \lambda_{\uparrow}C_k(n+1,j_h) + (1-\lambda_{\uparrow})C_{k+1}(n+1,j_h)\\[1em]
-C_i(n,j)^{\downarrow} &= \lambda_{\downarrow}C_t(n+1,j_b) + (1-\lambda_{\downarrow})C_{t+1}(n+1,j_b)
-\end{aligned}$$
-```
-- **Valeur actualisée** : 
-
-$$C_i(n,j) = \tfrac{1}{R(n,j)}\bigl(\pi(n,j)C_i(n,j)^{\uparrow} + (1-\pi(n,j))C_i(n,j)^{\downarrow}\bigr)$$
-
-avec $R(n,j)$ le facteur d'actualisation et $\pi(n,j) = \dfrac{R(n,j) - b(n,j)}{h(n,j) - b(n,j)}$ la probabilité risque-neutre.
-
-
-
-## 📚 Références
-
-- Hoek, J. van der, & Elliott, R. J. (2006). *Binomial Models in Finance*. Springer Finance
-
-
-## 👨‍💻 Auteur
-
-Alexandre R. - Master mathématiques appliquées -  Université Paris Cité
-
-
+Alexandre R. - Université Paris Cité

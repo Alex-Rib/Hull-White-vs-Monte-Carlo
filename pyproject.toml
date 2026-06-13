@@ -1,0 +1,16 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "W", "I", "N", "B", "UP", "SIM", "C4", "NPY", "RUF"]
+ignore = [
+    "N803", 
+    "N806",
+    "B905",
+    "SIM108", 
+]
