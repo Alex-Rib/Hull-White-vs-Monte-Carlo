@@ -80,18 +80,19 @@ $$C_i(n, j) = \frac{1}{R}\Bigl(q\,C_i(n,j)^\uparrow + (1 - q)\,C_i(n,j)^\downarr
 
 ## 📈 Results
 
-On the committed snapshot (spot ≈ 194, vol ≈ 22.6%, T ≈ 0.36y), the Hull-White price converges towards the Monte Carlo benchmark as the number of averages grows:
+On the committed AAPL snapshot (spot ≈ 291, vol ≈ 24.4%, T ≈ 0.36y), the Hull-White price converges towards the Monte Carlo benchmark as the number of averages grows:
 
 | Averages | Hull-White price |
 |---------:|-----------------:|
-| 4 | 15.93 |
-| 8 | 11.41 |
-| 16 | 8.95 |
-| 32 | 7.58 |
-| 64 | 6.91 |
-| 128 | 6.80 |
+| 4 | 25.71 |
+| 8 | 18.40 |
+| 16 | 14.42 |
+| 32 | 12.19 |
+| 64 | 11.10 |
+| 128 | 10.91 |
+| 256 | 10.86 |
 
-Monte Carlo benchmark (ATM, 1M paths): **6.76**. The coarse grid (M=4) is far off because the averaging grid is too sparse to track the path-dependent state; refining it closes the gap, at a runtime that roughly doubles each time M doubles. This is the accuracy-versus-cost trade-off the project sets out to show: Monte Carlo is simpler and fast here, while the lattice needs a fine averages grid to match it.
+Monte Carlo benchmark (ATM, 1M paths): **10.85 ± 0.02**. At M=256 the Hull-White price (10.86) falls inside the Monte Carlo 95% confidence interval: the two independent methods agree, which is the project's main correctness check. The coarse grid (M=4) is far off because the averaging grid is too sparse to track the path-dependent state; refining it closes the gap, at a runtime that roughly doubles each time M doubles. This is the accuracy-versus-cost trade-off the project sets out to show: Monte Carlo is simpler and fast here, while the lattice needs a fine averages grid to match it.
 
 ## 🚀 Usage
 
